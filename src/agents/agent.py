@@ -14,6 +14,7 @@ from langchain_core.messages import AnyMessage
 from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
 from tools.coffee.coffee_updater import update_coffee_database
+from tools.coffee.coffee_recommender import search_coffee_products
 
 LLM_CONFIG = "config/agent_llm_config.json"
 
@@ -60,7 +61,7 @@ def build_agent(ctx=None):
     return create_agent(
         model=llm,
         system_prompt=cfg.get("sp"),
-        tools=[update_coffee_database],
+        tools=[update_coffee_database, search_coffee_products],
         checkpointer=get_memory_saver(),
         state_schema=AgentState,
     )

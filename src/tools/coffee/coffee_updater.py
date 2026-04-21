@@ -58,7 +58,7 @@ def scrape_coffee_products() -> List[Dict[str, Any]]:
     from bs4 import BeautifulSoup
     from urllib.parse import urljoin
 
-    base_url = "https://specialtycoffee.ca"
+    base_url = "https://specialitycoffee.ca"
     products_url = f"{base_url}/collections/coffee"
 
     headers = {
