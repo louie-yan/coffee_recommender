@@ -203,27 +203,42 @@ def scrape_product_detail(product_url: str, headers: dict, base_url: str) -> Opt
             if price_match:
                 product_info['price_range'] = price_match.group()
 
-        # 4. 提取产品描述和风味信息
+        # 4. 提取产品描述和风味信息（优先级：Meta描述 > 页面内容区域）
         description = ""
-        desc_elems = [
-            soup.find(class_='woocommerce-product-details__short-description'),
-            soup.find(class_='product-description'),
-            soup.find(class_='description'),
-            soup.find('div', {'id': 'tab-description'}),
-            soup.find(class_='summary')
-        ]
 
-        for elem in desc_elems:
-            if elem:
-                desc = elem.get_text(strip=True)
-                if len(desc) > 50:  # 过滤掉太短的内容
-                    description = desc
-                    break
+        # 4.1 优先提取 Meta 描述（通常包含最完整的产品信息）
+        meta_desc = soup.find('meta', attrs={'name': 'description'})
+        if meta_desc:
+            meta_content = meta_desc.get('content')
+            if meta_content:
+                meta_content = str(meta_content).strip()
+                if len(meta_content) > 20:
+                    description = meta_content
+                    logger.info(f"从 Meta 描述获取到描述: {meta_content[:100]}...")
+
+        # 4.2 如果 Meta 描述不够，尝试从页面内容区域提取
+        if not description or len(description) < 50:
+            desc_elems = [
+                soup.find(class_='woocommerce-product-details__short-description'),
+                soup.find(class_='product-description'),
+                soup.find(class_='description'),
+                soup.find('div', {'id': 'tab-description'}),
+                soup.find(class_='summary')
+            ]
+
+            for elem in desc_elems:
+                if elem:
+                    desc = elem.get_text(strip=True)
+                    if len(desc) > 50:  # 过滤掉太短的内容
+                        description = desc
+                        logger.info(f"从 {elem.get('class')} 获取到描述: {desc[:100]}...")
+                        break
 
         product_info['tasting_notes'] = description[:1000] if description else None
 
         # 5. 从描述中提取结构化信息
-        product_info.update(extract_coffee_info_from_description(description, product_info['product_name']))
+        if description:
+            product_info.update(extract_coffee_info_from_description(description, product_info['product_name']))
 
         # 6. 提取图像
         img_elem = soup.find('img', class_='wp-post-image') or soup.find(class_='product-image') or soup.find('img', class_='attachment-woocommerce_single')
@@ -325,16 +340,27 @@ def extract_coffee_info_from_description(text: str, product_name: str = None) ->
         info['altitude'] = f"{start}-{end}m"
 
     # 4. 提取豆种
-    varieties = [
-        'Bourbon', 'Typica', 'Gesha', 'Geisha', 'SL28', 'SL34',
-        'Catuai', 'Caturra', 'Pacamara', 'Maragogype', 'Pacas',
-        'Mundo Novo', 'Catimor', 'Kent', 'S795', 'Rume Sudan',
-        'Pink Bourbon', 'Red Bourbon', 'Yellow Bourbon'
-    ]
-    for variety in varieties:
-        if variety.lower() in text_lower:
-            info['bean_variety'] = variety
-            break
+    # 4.1 首先尝试提取埃塞俄比亚的数字豆种代码（如 74110, 74112, 74158 等）
+    # 查找所有5位数字，然后筛选出埃塞俄比亚豆种代码（74开头）
+    all_numbers = re.findall(r'\b\d{5}\b', text)
+    ethiopian_varieties = [num for num in all_numbers if num.startswith('74')]
+
+    if ethiopian_varieties:
+        info['bean_variety'] = ', '.join(sorted(set(ethiopian_varieties)))
+
+    # 4.2 如果没有找到数字豆种，尝试匹配已知品种名称
+    if not info['bean_variety']:
+        varieties = [
+            'Bourbon', 'Typica', 'Gesha', 'Geisha', 'SL28', 'SL34',
+            'Catuai', 'Caturra', 'Pacamara', 'Maragogype', 'Pacas',
+            'Mundo Novo', 'Catimor', 'Kent', 'S795', 'Rume Sudan',
+            'Pink Bourbon', 'Red Bourbon', 'Yellow Bourbon',
+            'Heirloom'  # 埃塞俄比亚传统品种
+        ]
+        for variety in varieties:
+            if variety.lower() in text_lower:
+                info['bean_variety'] = variety
+                break
 
     # 5. 提取处理法
     processing_methods = {
