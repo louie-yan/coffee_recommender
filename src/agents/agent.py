@@ -15,6 +15,8 @@ from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
 from tools.coffee.coffee_updater import update_coffee_database
 from tools.coffee.coffee_recommender import search_coffee_products
+from tools.coffee.keyword_expander import expand_flavor_keywords
+from tools.coffee.price_matcher import check_price_match, parse_user_price_range
 
 LLM_CONFIG = "config/agent_llm_config.json"
 
@@ -61,7 +63,13 @@ def build_agent(ctx=None):
     return create_agent(
         model=llm,
         system_prompt=cfg.get("sp"),
-        tools=[update_coffee_database, search_coffee_products],
+        tools=[
+            update_coffee_database,
+            search_coffee_products,
+            expand_flavor_keywords,
+            check_price_match,
+            parse_user_price_range
+        ],
         checkpointer=get_memory_saver(),
         state_schema=AgentState,
     )
