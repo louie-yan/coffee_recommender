@@ -16,7 +16,7 @@ from storage.memory.memory_saver import get_memory_saver
 from tools.coffee.coffee_updater import update_coffee_database
 from tools.coffee.coffee_recommender import search_coffee_products
 from tools.coffee.keyword_expander import expand_flavor_keywords
-from tools.coffee.price_matcher import check_price_match, parse_user_price_range
+from tools.coffee.brewing_knowledge import get_brewing_knowledge
 
 LLM_CONFIG = "config/agent_llm_config.json"
 
@@ -67,8 +67,7 @@ def build_agent(ctx=None):
             update_coffee_database,
             search_coffee_products,
             expand_flavor_keywords,
-            check_price_match,
-            parse_user_price_range
+            get_brewing_knowledge
         ],
         checkpointer=get_memory_saver(),
         state_schema=AgentState,
