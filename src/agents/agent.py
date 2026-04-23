@@ -17,6 +17,7 @@ from tools.coffee.coffee_updater import update_coffee_database
 from tools.coffee.coffee_recommender import search_coffee_products
 from tools.coffee.keyword_expander import expand_flavor_keywords
 from tools.coffee.price_matcher import check_price_match, parse_user_price_range
+from tools.coffee.coffee_evaluator import evaluate_recommendation_match
 from tools.coffee.brewing_knowledge import get_brewing_knowledge
 
 LLM_CONFIG = "config/agent_llm_config.json"
@@ -70,6 +71,7 @@ def build_agent(ctx=None):
             expand_flavor_keywords,
             check_price_match,
             parse_user_price_range,
+            evaluate_recommendation_match,
             get_brewing_knowledge
         ],
         checkpointer=get_memory_saver(),
